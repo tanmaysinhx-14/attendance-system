@@ -5,26 +5,26 @@ import { useRef, useState } from "react";
 export default function Home() {
   const qrRef = useRef<any>(null);
   const [cameras, setCameras] = useState<any[]>([]);
-  const [currentCam, setCurrentCam] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [started, setStarted] = useState(false);
 
-  const loadCameras = async () => {
+  const startCamera = async (index = 0) => {
     const { Html5Qrcode } = await import("html5-qrcode");
+
+    // Start with any camera first
     const devices = await Html5Qrcode.getCameras();
+    if (!devices || devices.length === 0) {
+      alert("No camera found");
+      return;
+    }
+
     setCameras(devices);
-    return { Html5Qrcode, devices };
-  };
-
-  const startCamera = async (deviceId?: string) => {
-    const { Html5Qrcode, devices } = await loadCameras();
-
-    const camId = deviceId || devices[0].id;
-    setCurrentCam(camId);
+    setCurrentIndex(index);
 
     qrRef.current = new Html5Qrcode("reader");
 
     await qrRef.current.start(
-      camId,
+      devices[index].id,
       { fps: 10, qrbox: 250 },
       (text: string) => {
         qrRef.current?.stop();
@@ -33,16 +33,21 @@ export default function Home() {
     );
 
     setStarted(true);
+
+    // 🔁 Re-fetch cameras AFTER stream starts (mobile fix)
+    const refreshed = await Html5Qrcode.getCameras();
+    if (refreshed.length > 1) {
+      setCameras(refreshed);
+    }
   };
 
   const switchCamera = async () => {
     if (!started || cameras.length < 2) return;
 
-    const nextCam =
-      cameras.find((c) => c.id !== currentCam)?.id || cameras[0].id;
+    const nextIndex = (currentIndex + 1) % cameras.length;
 
     await qrRef.current.stop();
-    await startCamera(nextCam);
+    await startCamera(nextIndex);
   };
 
   return (
@@ -56,9 +61,10 @@ export default function Home() {
       )}
 
       {started && cameras.length > 1 && (
-        <button onClick={switchCamera} style={{ marginLeft: 10 }}>
-          Switch Camera
+        <button onClick={switchCamera}>
+          Switch Camera ({currentIndex === 0 ? "Front" : "Back"})
         </button>
+
       )}
 
       <div id="reader" style={{ width: 300, margin: "20px auto" }} />
