@@ -4,11 +4,11 @@ import dynamic from "next/dynamic";
 import { useRef } from "react";
 
 const Html5Qrcode = dynamic(
-  () => import("html5-qrcode").then((mod) => mod.Html5Qrcode),
+  () => import("html5-qrcode").then((m) => m.Html5Qrcode),
   { ssr: false }
 );
 
-export default function ScanPage() {
+export default function Home() {
   const qrRef = useRef<any>(null);
 
   const startScan = async () => {
@@ -18,9 +18,9 @@ export default function ScanPage() {
     await qrRef.current.start(
       devices[0].id,
       { fps: 10, qrbox: 250 },
-      (decodedText: string) => {
+      (text: string) => {
         qrRef.current?.stop();
-        window.location.href = decodedText;
+        window.location.href = text;
       }
     );
   };
