@@ -1,26 +1,28 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useRef } from "react";
-
-const Html5Qrcode = dynamic(
-  () => import("html5-qrcode").then((m) => m.Html5Qrcode),
-  { ssr: false }
-);
 
 export default function Home() {
   const qrRef = useRef<any>(null);
 
   const startScan = async () => {
+    // ✅ Browser-only dynamic import
+    const { Html5Qrcode } = await import("html5-qrcode");
+
     const devices = await Html5Qrcode.getCameras();
+    if (!devices || devices.length === 0) {
+      alert("No camera found");
+      return;
+    }
+
     qrRef.current = new Html5Qrcode("reader");
 
     await qrRef.current.start(
       devices[0].id,
       { fps: 10, qrbox: 250 },
-      (text: string) => {
+      (decodedText: string) => {
         qrRef.current?.stop();
-        window.location.href = text;
+        window.location.href = decodedText;
       }
     );
   };
