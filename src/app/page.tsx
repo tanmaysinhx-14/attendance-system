@@ -1,10 +1,15 @@
 "use client";
 
-import { Html5Qrcode } from "html5-qrcode";
+import dynamic from "next/dynamic";
 import { useRef } from "react";
 
+const Html5Qrcode = dynamic(
+  () => import("html5-qrcode").then((mod) => mod.Html5Qrcode),
+  { ssr: false }
+);
+
 export default function ScanPage() {
-  const qrRef = useRef<Html5Qrcode | null>(null);
+  const qrRef = useRef<any>(null);
 
   const startScan = async () => {
     const devices = await Html5Qrcode.getCameras();
@@ -13,9 +18,9 @@ export default function ScanPage() {
     await qrRef.current.start(
       devices[0].id,
       { fps: 10, qrbox: 250 },
-      (text) => {
+      (decodedText: string) => {
         qrRef.current?.stop();
-        window.location.href = text;
+        window.location.href = decodedText;
       }
     );
   };
