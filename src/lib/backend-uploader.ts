@@ -1,11 +1,11 @@
-import { getQueued, removeQueued } from "./qrQueue";
+import { getQueued, removeQueued } from "./queue";
 
 export async function uploadToBackend() {
   const items = await getQueued();
 
   for (const item of items) {
     try {
-      const res = await fetch("/api/attendance/scan.php", {
+      const res = await fetch("/api/database-uploader/index.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
