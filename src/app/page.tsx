@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { queueLocally } from "@/lib/qrQueue";
+import { uploadToBackend } from "@/lib/uploader";
 
 export default function Home() {
   const qrRef = useRef<any>(null);
@@ -19,26 +21,21 @@ export default function Home() {
     }
 
     const rearCamera =
-      devices.find((d) =>
-        d.label.toLowerCase().includes("back")
-      ) || devices[0];
+      devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
 
     qrRef.current = new Html5Qrcode("reader");
 
     await qrRef.current.start(
       rearCamera.id,
-      {
-        fps: 10,
-        qrbox: 250,
-        aspectRatio: 1.0
-      },
-      (text: string) => {
-        setStatus("QR detected");
-
+      { fps: 10, qrbox: 250, aspectRatio: 1 },
+      async (text: string) => {
+        setStatus("QR captured");
         navigator.vibrate?.(120);
 
-        qrRef.current?.stop();
-        window.location.href = text;
+        await queueLocally(text);
+        uploadToBackend(); // async, retry-safe
+
+        await qrRef.current.stop();
       }
     );
 
@@ -50,11 +47,7 @@ export default function Home() {
     <main style={{ textAlign: "center", padding: 20 }}>
       <h2>Scan Attendance QR</h2>
 
-      {!started && (
-        <button onClick={startCamera}>
-          Start Camera
-        </button>
-      )}
+      {!started && <button onClick={startCamera}>Start Camera</button>}
 
       <div
         id="reader"
