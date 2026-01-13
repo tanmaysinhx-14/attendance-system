@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   const phpRes = await fetch(
     `http://127.0.0.1/accounts/attendance/php-api/qrTokenGeneration/index.php`
   );
