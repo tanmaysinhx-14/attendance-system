@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Attendance System – Feature Update
 
-## Getting Started
+This repository contains a **feature update for https://careerinstitute.co.in**.
 
-First, run the development server:
+This project aims to implement a **seamless attendance system for students**, using **QR scanners provided within their account dashboard**. The system focuses on secure, fast, and reliable attendance marking with minimal manual effort.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project Overview
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The attendance system enables:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- QR-based attendance scanning
+- Scanner access through authenticated dashboards
+- Secure, time-bound QR tokens
+- Prevention of duplicate and expired scans
+- Real-time attendance submission
 
-## Learn More
+The solution is designed to be efficient, scalable, and user-friendly for academic institutions.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is built using:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Next.js** – Frontend framework
+- **TypeScript** – Static typing and improved maintainability
+- **PHP** – Backend processing and APIs
+- **Tailwind CSS** – Responsive UI styling
