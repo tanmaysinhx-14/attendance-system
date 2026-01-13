@@ -1,26 +1,23 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import QRCode from "react-qr-code";
 
 export default function QRGenerator() {
-  const searchParams = useSearchParams();
-  const encryptedToken = searchParams.get("token");
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(60);
+
 
   const generateQR = async () => {
     setError("");
     setToken(null);
-
-    if (!encryptedToken) {
-      setError("Missing encrypted token in URL");
-      return;
-    }
+    setSecondsLeft(60);
 
     try {
-      const res = await fetch(`/api/generate-token?token=${encodeURIComponent(encryptedToken)}`);
+      const res = await fetch("/api/generateToken/", {
+        cache: "no-store",
+      });
 
       if (!res.ok) {
         const msg = await res.text();
@@ -34,36 +31,63 @@ export default function QRGenerator() {
     }
   };
 
-  return (
-    <main style={{ padding: 20, maxWidth: 400 }}>
-      <h2>Generate Attendance QR</h2>
+  useEffect(() => {
+    generateQR();
 
-      <input
-        placeholder="Student ID"
-        value={student}
-        onChange={(e) => setStudent(e.target.value)}
-        style={{ width: "100%", marginBottom: 10 }}
-      />
+    const interval = setInterval(() => {
+      generateQR();
+    }, 20_000);
 
-      <input
-        placeholder="Session ID"
-        value={session}
-        onChange={(e) => setSession(e.target.value)}
-        style={{ width: "100%", marginBottom: 10 }}
-      />
+    return () => clearInterval(interval);
+  }, []);
 
-      <button onClick={generateQR}>Generate QR</button>
+  useEffect(() => {
+    if (!token) return;
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    const countdown = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          clearInterval(countdown);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdown);
+  }, [token]);
+
+
+return (
+  <main style={{minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",background: "#f5f7fb",}}>
+    <div
+      style={{width: "100%", maxWidth: 350, padding: 24, textAlign: "center", background: "#ffffff", borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.08)",}}>
+      <h2 style={{marginBottom: 16, fontSize: 20, fontWeight: 600, color: "#1f2937",}}>
+        Attendance QR Code
+      </h2>
+
+      {error && (
+        <p style={{marginBottom: 12, color: "#dc2626", fontSize: 14, fontWeight: 500,}}>
+          {error}
+        </p>
+      )}
 
       {token && (
-        <div style={{ marginTop: 20, background: "#fff", padding: 10 }}>
-          <QRCode value={token} size={256} />
-          <p style={{ fontSize: 12, wordBreak: "break-all" }}>
-            Token valid for a short time
-          </p>
+        <div style={{display: "flex", flexDirection: "column", alignItems: "center", padding: 16, marginBottom: 12, background: "#f9fafb", borderRadius: 10,}}>
+          <QRCode value={token} size={220} />
         </div>
       )}
-    </main>
-  );
+
+      <p
+        style={{fontSize: 13, color: "#6b7280", lineHeight: 1.5,}}>
+        This QR code refreshes automatically every 1 minute.
+      </p> 
+
+      <p style={{marginTop: 10, fontSize: 13, fontWeight: 500, color: secondsLeft <= 10 ? "#dc2626" : "#374151",}}>
+        Expires in {secondsLeft}s
+      </p>
+    </div>
+  </main>
+);
+
 }
