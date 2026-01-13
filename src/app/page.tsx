@@ -2,8 +2,6 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { queueLocally } from "@/lib/queue";
-import { uploadToBackend } from "@/lib/backend-uploader";
 
 export default function Home() {
   const searchParams = useSearchParams();
@@ -18,18 +16,26 @@ export default function Home() {
     typeof encryptedToken === "string" &&
     encryptedToken.trim().length > 0;
 
-  
-  
-  
-  
   const lastTokenRef = useRef<string | null>(null);
   const fetchedRef = useRef(false);
 
-  useEffect(() => {
-  if (!encryptedToken || encryptedToken === "") {
-    setStatus("Invalid or missing token");
-    return;
+  function decodeJwtPayload(token: string) {
+    try {
+      const [, payload] = token.split(".");
+      if (!payload) return null;
+
+      const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
   }
+
+  useEffect(() => {
+    if (!encryptedToken || encryptedToken === "") {
+      setStatus("Invalid or missing token");
+      return;
+    }
 
     if (fetchedRef.current) return;
     fetchedRef.current = true;
@@ -73,12 +79,48 @@ export default function Home() {
     await qrRef.current.start(
       camera.id,
       { fps: 60, qrbox: 250 },
-      async text => {
+      async (text: string) => {
+        if (lastTokenRef.current === text) return;
+        lastTokenRef.current = text;
+
+        const payload = decodeJwtPayload(text);
+        if (!payload?.issued_at || !payload?.expires_at) {
+          setStatus("Invalid QR code");
+          return;
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const MAX_CLOCK_SKEW = 30;
+
+        if (now < payload.issued_at - MAX_CLOCK_SKEW || now > payload.expires_at + MAX_CLOCK_SKEW) {
+          setStatus("QR code expired");
+          return;
+        }
+
         navigator.vibrate?.(120);
-        await queueLocally(text);
-        uploadToBackend();
-        setStatus("Scan complete");
+        setStatus("Uploading...");
+
+        try {
+          const res = await fetch("/api/databaseUploader", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scanner: usercode,
+              qrToken: text
+            }),
+            cache: "no-store"
+          });
+
+          if (!res.ok) {
+            throw new Error(await res.text());
+          }
+
+          setStatus("Attendance recorded");
+        } catch (err: any) {
+          setStatus(err.message || "Upload failed");
+        }
       }
+
     );
 
     setCameraRunning(true);
@@ -96,9 +138,12 @@ export default function Home() {
     setStatus("Stopped");
   };
 
+
+
+
   return (
     <main style={{ textAlign: "center", padding: 20 }}>
-      <input type="text" value={usercode || ""} disabled />
+      <p>{usercode || ""}</p>
       <p className="mt-7 mb-5 text-2xl/7 font-bold text-white sm:truncate sm:text-3xl sm:tracking-tight">
         Scan Attendance QR
       </p>
@@ -112,11 +157,7 @@ export default function Home() {
         </button>
       )}
 
-      <div id="reader"
-        style={{
-          width: 300, margin: "20px auto", border: "2px dashed #555",borderRadius: 12
-        }}
-      />
+      <div id="reader" style={{width: 300, margin: "20px auto", border: "2px dashed #555", borderRadius: 12}}/>
 
       <p style={{ fontSize: 14 }}>{status}</p>
 
