@@ -2,6 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { Html5Qrcode } from "html5-qrcode";
+
 
 export default function Home() {
   const searchParams = useSearchParams();
@@ -11,7 +13,7 @@ export default function Home() {
   const [cameraRunning, setCameraRunning] = useState(false);
   const [status, setStatus] = useState("Click Start Camera to begin");
 
-  const qrRef = useRef<any>(null);
+  const qrRef = useRef<Html5Qrcode | null>(null);
   const hasValidToken =
     typeof encryptedToken === "string" &&
     encryptedToken.trim().length > 0;
@@ -19,7 +21,12 @@ export default function Home() {
   const lastTokenRef = useRef<string | null>(null);
   const fetchedRef = useRef(false);
 
-  function decodeJwtPayload(token: string) {
+  type JwtPayload = {
+    issued_at: number;
+    expires_at: number;
+  };
+
+  function decodeJwtPayload(token: string): JwtPayload | null {
     try {
       const [, payload] = token.split(".");
       if (!payload) return null;
@@ -54,11 +61,15 @@ export default function Home() {
         const text = (await res.text()).trim();
         setUsercode(text);
         setStatus("Ready to scan");
-      } catch (e: any) {
-        setStatus(e.message || "Token decryption failed");
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          setStatus(e.message);
+        } else {
+          setStatus("Token decryption failed");
+        }
       }
     })();
-  }, []);
+  }, [encryptedToken]);
 
   const startCamera = async () => {
     setStatus("Starting camera...");
@@ -116,9 +127,14 @@ export default function Home() {
           }
 
           setStatus("Attendance recorded");
-        } catch (err: any) {
-          setStatus(err.message || "Upload failed");
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            setStatus(err.message);
+          } else {
+            setStatus("Upload failed");
+          }
         }
+
       }
 
     );

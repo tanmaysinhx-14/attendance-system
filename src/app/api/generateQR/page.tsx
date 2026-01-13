@@ -26,8 +26,12 @@ export default function QRGenerator() {
 
       const jwt = await res.text();
       setToken(jwt.trim());
-    } catch (e: any) {
-      setError(e.message || "QR generation failed");
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("QR generation failed");
+      }
     }
   };
 
