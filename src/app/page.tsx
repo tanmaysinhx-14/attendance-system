@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Html5Qrcode } from "html5-qrcode";
-
+import styles from "./assets/page.module.css";
 
 export default function Home() {
   const searchParams = useSearchParams();
@@ -13,30 +13,17 @@ export default function Home() {
   const [cameraRunning, setCameraRunning] = useState(false);
   const [status, setStatus] = useState("Click Start Camera to begin");
 
-  const qrRef = useRef<Html5Qrcode | null>(null);
-  const hasValidToken =
-    typeof encryptedToken === "string" &&
-    encryptedToken.trim().length > 0;
+  const [message, setMessage] = useState<{
+    type: "success" | "error" | "info";
+    text: string;
+  } | null>(null);
 
+  const qrRef = useRef<Html5Qrcode | null>(null);
   const lastTokenRef = useRef<string | null>(null);
   const fetchedRef = useRef(false);
+  const scanningLockedRef = useRef(false);
 
-  type JwtPayload = {
-    issued_at: number;
-    expires_at: number;
-  };
-
-  function decodeJwtPayload(token: string): JwtPayload | null {
-    try {
-      const [, payload] = token.split(".");
-      if (!payload) return null;
-
-      const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-      return JSON.parse(json);
-    } catch {
-      return null;
-    }
-  }
+  const hasValidToken = typeof encryptedToken === "string" && encryptedToken.trim().length > 0;
 
   useEffect(() => {
     if (!encryptedToken || encryptedToken === "") {
@@ -72,7 +59,9 @@ export default function Home() {
   }, [encryptedToken]);
 
   const startCamera = async () => {
+    setMessage(null);
     setStatus("Starting camera...");
+    scanningLockedRef.current = false;
 
     const { Html5Qrcode } = await import("html5-qrcode");
     const devices = await Html5Qrcode.getCameras();
@@ -89,25 +78,25 @@ export default function Home() {
 
     await qrRef.current.start(
       camera.id,
-      { fps: 60, qrbox: 250 },
+      {
+        fps: 10,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const size = Math.min(viewfinderWidth, viewfinderHeight) * 0.7;
+          return { width: size, height: size };
+        },
+        rememberLastUsedCamera: true,
+        disableFlip: false
+      },
       async (text: string) => {
-        if (lastTokenRef.current === text) return;
+        if (scanningLockedRef.current) return;
+        scanningLockedRef.current = true;
+
+        if (lastTokenRef.current === text) {
+          scanningLockedRef.current = false;
+          return;
+        }
+
         lastTokenRef.current = text;
-
-        const payload = decodeJwtPayload(text);
-        if (!payload?.issued_at || !payload?.expires_at) {
-          setStatus("Invalid QR code");
-          return;
-        }
-
-        const now = Math.floor(Date.now() / 1000);
-        const MAX_CLOCK_SKEW = 30;
-
-        if (now < payload.issued_at - MAX_CLOCK_SKEW || now > payload.expires_at + MAX_CLOCK_SKEW) {
-          setStatus("QR code expired");
-          return;
-        }
-
         navigator.vibrate?.(120);
         setStatus("Uploading...");
 
@@ -122,21 +111,45 @@ export default function Home() {
             cache: "no-store"
           });
 
-          if (!res.ok) {
-            throw new Error(await res.text());
+          const data = await res.json();
+
+          if (!res.ok || data.success !== true) {
+            throw new Error(data.error || data.message || "Attendance upload failed");
           }
 
-          setStatus("Attendance recorded");
-        } catch (err: unknown) {
-          if (err instanceof Error) {
-            setStatus(err.message);
-          } else {
-            setStatus("Upload failed");
-          }
+          setMessage({
+            type: "success",
+            text: data.message || "Attendance recorded successfully"
+          });
+
+          navigator.vibrate?.(200);
+          await qrRef.current?.pause(true);
+          await stopCamera();
         }
+        catch (err: unknown) {
+          scanningLockedRef.current = false;
+          lastTokenRef.current = null;
 
+          const errorMessage =
+            err instanceof Error && err.message
+              ? err.message
+              : "Attendance upload failed";
+
+          if (!errorMessage.toLowerCase().includes("already recorded")) {
+            try {
+              await qrRef.current?.resume();
+              setStatus("Scan failed. Try again.");
+            } catch {}
+          } else {
+            setStatus("Attendance already recorded");
+          }
+
+          setMessage({
+            type: "error",
+            text: errorMessage
+          });
+        }
       }
-
     );
 
     setCameraRunning(true);
@@ -146,42 +159,62 @@ export default function Home() {
   const stopCamera = async () => {
     if (!qrRef.current) return;
 
-    await qrRef.current.stop();
-    await qrRef.current.clear();
-    qrRef.current = null;
+    try {
+      await qrRef.current.stop();
+      await qrRef.current.clear();
+    } catch {}
 
+    qrRef.current = null;
+    scanningLockedRef.current = false;
     setCameraRunning(false);
     setStatus("Stopped");
   };
 
-
-
-
   return (
-    <main style={{ textAlign: "center", padding: 20 }}>
-      <p>{usercode || ""}</p>
-      <p className="mt-7 mb-5 text-2xl/7 font-bold text-white sm:truncate sm:text-3xl sm:tracking-tight">
-        Scan Attendance QR
-      </p>
+    <main className={styles.page}>
+      <div className={styles.container}>
+        {usercode && (
+          <div className={styles.scannerId}>
+            Scanner ID: <strong>{usercode}</strong>
+          </div>
+        )}
 
-      {!cameraRunning && hasValidToken && (
-        <button
-          className="btn text-black bg-amber-50 rounded-xl px-3 py-1 mt-5 mb-5"
-          onClick={startCamera}
-        >
-          Start Camera
-        </button>
-      )}
+        <h1 className={styles.title}>Scan Attendance QR</h1>
 
-      <div id="reader" style={{width: 300, margin: "20px auto", border: "2px dashed #555", borderRadius: 12}}/>
+        {!cameraRunning && hasValidToken && (
+          <button className="btn text-black bg-amber-50 rounded-xl px-4 py-2"
+                  onClick={startCamera}>
+            Start Camera
+          </button>
+        )}
 
-      <p style={{ fontSize: 14 }}>{status}</p>
+        <div id="reader" className={styles.reader} />
 
-      {cameraRunning && (
-        <button className="btn text-black bg-amber-50 rounded-xl px-3 py-1 mt-5 mb-5" onClick={stopCamera}>
-          Stop Camera
-        </button>
-      )}
+        <div className={styles.status}>
+          {!message && status}
+        </div>
+
+        {message && (
+          <div
+            className={`${styles.message} ${
+              message.type === "success"
+                ? styles.success
+                : message.type === "error"
+                ? styles.error
+                : styles.info
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        {cameraRunning && (
+          <button className="btn text-black bg-amber-50 rounded-xl px-4 py-2"
+                  onClick={stopCamera}>
+            Stop Camera
+          </button>
+        )}
+      </div>
     </main>
   );
 }

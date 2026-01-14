@@ -12,7 +12,7 @@ export default function QRGenerator() {
   const generateQR = async () => {
     setError("");
     setToken(null);
-    setSecondsLeft(60);
+    setSecondsLeft(15);
 
     try {
       const res = await fetch("/api/generateToken/", {
@@ -40,7 +40,7 @@ export default function QRGenerator() {
 
     const interval = setInterval(() => {
       generateQR();
-    }, 20_000);
+    }, 15_000);
 
     return () => clearInterval(interval);
   }, []);
@@ -87,7 +87,7 @@ return (
         This QR code refreshes automatically every 1 minute.
       </p> 
 
-      <p style={{marginTop: 10, fontSize: 13, fontWeight: 500, color: secondsLeft <= 10 ? "#dc2626" : "#374151",}}>
+      <p style={{marginTop: 10, fontSize: 13, fontWeight: 500, color: secondsLeft <= 5 ? "#dc2626" : "#374151",}}>
         Expires in {secondsLeft}s
       </p>
     </div>
