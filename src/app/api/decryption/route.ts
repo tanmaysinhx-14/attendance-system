@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   }
 
   const phpRes = await fetch(
-    `http://127.0.0.1/accounts/attendance/php-api/decryption/index.php?token=${encodeURIComponent(
+    `http://accounts.careerinstitute.co.in/attendance/php-api/decryption/index.php?token=${encodeURIComponent(
       token
     )}`
   );
