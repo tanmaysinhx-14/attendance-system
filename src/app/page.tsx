@@ -84,7 +84,6 @@ export default function Home() {
           const size = Math.min(viewfinderWidth, viewfinderHeight) * 0.7;
           return { width: size, height: size };
         },
-        rememberLastUsedCamera: true,
         disableFlip: false
       },
       async (text: string) => {
@@ -149,7 +148,8 @@ export default function Home() {
             text: errorMessage
           });
         }
-      }
+      },
+      () => {}       
     );
 
     setCameraRunning(true);
