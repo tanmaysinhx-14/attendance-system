@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const PHP_ENDPOINT = "http://127.0.0.1/accounts/attendance/php-api/databaseUploader/index.ph";
+const PHP_ENDPOINT = "http://127.0.0.1/accounts/attendance/php-api/databaseUploader/index.php";
 
 export async function POST(req: Request) {
   const body = await req.json();
