@@ -25,39 +25,6 @@ export default function Home() {
 
   const hasValidToken = typeof encryptedToken === "string" && encryptedToken.trim().length > 0;
 
-  useEffect(() => {
-    if (!encryptedToken || encryptedToken === "") {
-      setStatus("Invalid or missing token");
-      return;
-    }
-
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/decryption?token=${encodeURIComponent(encryptedToken)}`,
-          { cache: "no-store" }
-        );
-
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-
-        const text = (await res.text()).trim();
-        setUsercode(text);
-        setStatus("Ready to scan");
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          setStatus(e.message);
-        } else {
-          setStatus("Token decryption failed");
-        }
-      }
-    })();
-  }, [encryptedToken]);
-
   const startCamera = async () => {
     setMessage(null);
     setStatus("Starting camera...");
@@ -104,7 +71,7 @@ export default function Home() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              scanner: usercode,
+              encryptedScanner: encryptedToken,
               qrToken: text
             }),
             cache: "no-store"
