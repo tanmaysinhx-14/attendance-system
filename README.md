@@ -6,25 +6,73 @@ This project aims to implement a **seamless attendance system for students**, us
 
 ---
 
-## Project Overview
+## Project Overview (Attendance Scanner 👀)
 
 The attendance system enables:
 
-- QR-based attendance scanning
-- Scanner access through authenticated dashboards
-- Secure, time-bound QR tokens
-- Prevention of duplicate and expired scans
-- Real-time attendance submission
+- **QR-Based Attendance Scanning**  
+Attendance is captured through secure QR code scanning to enable fast, contactless check-ins.
+
+- **Authenticated Scanner Access**  
+QR scanning functionality is available only through authenticated user dashboards to ensure authorized usage.
+
+- **Secure, Time-Bound QR Tokens**  
+Dynamically generated QR codes expire after a defined time window to prevent misuse and replay attacks.
+
+- **Duplicate and Expired Scan Prevention**  
+System-level validation blocks multiple scans by the same user and rejects expired QR tokens.
+
+- **Real-Time Attendance Submission**  
+Attendance data is processed and recorded instantly upon successful scan for immediate availability.
+
 
 The solution is designed to be efficient, scalable, and user-friendly for academic institutions.
 
 ---
 
-## Tech Stack
+## 🌐 Tech Stack
 
 This project is built using:
 
 - **Next.js** – Frontend framework
 - **TypeScript** – Static typing and improved maintainability
 - **PHP** – Backend processing and APIs
-- **Tailwind CSS** – Responsive UI styling
+- **Tailwind CSS** – UI Styling
+
+---
+## 📂 Project Structure
+```
+attendance-system-scanner/
+│
+├── .next/
+├── node_modules/
+│
+├── php-api/
+│   ├── databaseUploader/
+│   │   ├── credentials.env         # DB credentials
+│   │   ├── database.php            # DB connection
+│   │   └── index.php               # Upload endpoint
+│   │
+│   └── qrTokenGeneration/
+│       ├── credentials.env         # Token secrets
+│       └── index.php               # Token endpoint
+│
+├── public/
+│
+├── src/
+│   └── app/                        
+│       ├── api/                    # API route handlers
+│       ├── assets/                 # Frontend assets
+│       ├── globals.css             # Global styles
+│       ├── layout.tsx              # Root layout
+│       ├── page.tsx                # Home page
+│       └── scannerClient.tsx       # QR scanner UI
+│
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── postcss.config.mjs
+├── tailwind.config.js
+├── tsconfig.json
+│
+└── README.md                       # Project documentation
